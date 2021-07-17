@@ -1,6 +1,7 @@
-from flask import Flask
+from flask import Flask, jsonify
 from flask_migrate import Migrate
 from flask_sqlalchemy import SQLAlchemy
+from flask_marshmallow import Marshmallow
 
 app=Flask(__name__)
 
@@ -17,6 +18,7 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 # Inicialize Data Base
 db = SQLAlchemy(app)
+ma = Marshmallow(app)
 
 # Configuration flask-migrate
 migrate = Migrate()
@@ -26,13 +28,50 @@ migrate.init_app(app, db)
 class Products(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     product = db.Column(db.String(60))
-    description = db.Column(db.String(60))
-    price = db.Column(db.Integer)
+    description = db.Column(db.String(200))
+    price = db.Column (db.Float)
 
-    def __str__(self):
-        return (
-            f'Id: {self.id}, '
-            f'Product: {self.product}, '
-            f'Description: {self.description}, '
-            f'Price: {self.price}'
-        )
+    def __init__(self, product, description, price):
+        self.product = product
+        self.description = description
+        self.price = price
+
+class ProductSchema(ma.Schema):
+    class Meta:
+        fields = ('id', 'product', 'description', 'price')
+
+# Init schema
+productSchema = ProductSchema()
+productsSchema = ProductSchema(many=True)
+
+# Create a new Product
+@app.route("/api/product", methods=["POST"])
+def addProduct():
+    product = request.json["product"]
+    description = request.json["description"]
+    price = request.json["price"]
+
+    createdProduct = Products(product, description, price)
+
+    db.session.add(createdProduct)
+    db.session.commit()
+
+    return jsonify(productSchema.dump(createdProduct))
+
+# Get All Products List
+@app.route('/api/products', methods=['GET'])
+def sendProducts():
+        getAllProducts = Products.query.all()
+        return jsonify(productsSchema.dump(getAllProducts))
+
+# Get individual data of product
+@app.route('/api/product/<id>', methods=['GET'])
+def sendProduct(id):
+        getProduct = Products.query.get(id)
+        return jsonify(productSchema.dump(getProduct))
+
+# Not finished fuction
+@app.route('/api/search/<search>', methods=['GET'])
+def sendProductName(search):
+        getProductByName = Products.query.filter_by(product=search).first()
+        return jsonify(productSchema.dump(getProductByName))
