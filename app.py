@@ -36,11 +36,3 @@ class Products(db.Model):
             f'Description: {self.description}, '
             f'Price: {self.price}'
         )
-
-# @app.route('/')
-# def index():
-#         return "Hola Mundo bienvenidos JEJEJE"
-#
-# @app.route('/homepage')
-# def index2():
-#         return "Hola, mi nombre es Alex Luna Toledo"
